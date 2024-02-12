@@ -3,6 +3,7 @@ import socket
 
 # Define variables
 peer_name = ""
+peer_addr = ""
 m_port = 0
 p_port = 0
 peer_state = "Free"
@@ -14,12 +15,17 @@ manager_port = 0
 
 # Define peer functions
 
+def register():
+    # Send register command to manager with peer info
+    message = "register " + peer_name + " " + socket.AF_INET + " " + m_port + " " + p_port
+    # Send packet to manager address
 
 
 # Define main loop and response to each function
 def main():
     # Establish name and port numbers
     peer_name = input("Enter peer name: ")
+    peer_addr = socket.gethostbyname(socket.gethostname())
     m_port = int(input("Enter peer-manager port: "))
     while (m_port < 14000 or m_port > 14500):
         m_port = int(input("Invalid port number. Please enter a valid port number: "))
@@ -32,11 +38,11 @@ def main():
         manager_port = int(input("Invalid port number. Please enter a valid port number: "))
     # Create socket for peer-manager communication
     m_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    m_socket.bind((socket.gethostname(), m_port))
+    m_socket.bind((peer_addr, m_port))
 
     # Create socket for peer-peer communication
     p_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    p_socket.bind((socket.gethostname(), p_port))
+    p_socket.bind((peer_addr, p_port))
 
-    
+
     
