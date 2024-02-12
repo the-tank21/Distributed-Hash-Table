@@ -6,7 +6,8 @@ from dataclasses import dataclass
 
 # Define variables
 peer_list = []
-dht_state = False
+dht_list = []
+dht_state = "NOT CREATED"
 
 @dataclass
 class Peer:
@@ -25,19 +26,17 @@ def register(peer_name, addr, m_port, p_port):
     # Add peer to peer list
     peer = Peer(peer_name, addr, m_port, p_port)
     peer_list.append(peer)
-    dht_state = True
     return "SUCCESS"
 
 # Define setup_dht function
 def setup_dht(peer_name, num, year):
     contains_name = False
     in_dht = 0
-    dht_list = []
     if num < 3:
         return "FAILURE"
     if peer_list.length < num:
         return "FAILURE"
-    if dht_state == True:
+    if dht_state == "CREATED":
         return "FAILURE"
     for peer in peer_list:
         if peer.peer_name == peer_name:
@@ -46,16 +45,22 @@ def setup_dht(peer_name, num, year):
             dht_list.append((peer.peer_name, peer.addr, peer.p_port))
     if (contains_name == False):
         return "FAILURE"
-    while in_dht < num - 1:
-        for peer in peer_list:
-            if peer.state == "Free":
-                peer.state = "InDHT"
-                in_dht += 1
-                dht_list.append((peer.peer_name, peer.addr, peer.p_port))
+    for peer in peer_list:
+        if peer.state == "Free":
+            peer.state = "InDHT"
+            in_dht += 1
+            dht_list.append((peer.peer_name, peer.addr, peer.p_port))
+        if in_dht == num - 1:
+            break
+    dht_state = "IN PROGRESS"
     return dht_list, "SUCCESS"
 
 # Define dht_complete function
-
+def dht_complete(peer_name):
+    if peer_name != dht_list[0][0]:
+        return "FAILURE"
+    dht_state = "CREATED"
+    return "SUCCESS"
 
 # main function
 def main():
@@ -70,7 +75,7 @@ def main():
     # Run server
     while True:
     # Listen for command
-        data = s.recv(1024)
+        data, address = s.recvfrom(1024)
     # Identify type of command
         data.decode('utf-8').split(' ')
         command = data[0]
@@ -87,5 +92,13 @@ def main():
             num = data[2]
             year = data[3]
             dht_list, response = setup_dht(peer_name, num, year)
-            # send dht_list to leader, don't know how to get port it was sent from
+            # address is a tuple returned from recvfrom()
+            s.sendto(response.encode('utf-8'), address)
+            if response == "SUCCESS":
+                s.sendto(dht_list.encode('utf-8'), address)
+        if command == "dht_complete":
+            response = dht_complete(data[1])
+            s.sendto(response.encode('utf-8'), address)
+            
+            
 
