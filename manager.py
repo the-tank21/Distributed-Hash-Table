@@ -3,6 +3,7 @@
 
 import socket
 from dataclasses import dataclass
+import pickle
 
 # Define variables
 peer_list = []
@@ -87,7 +88,7 @@ def main():
             p_port = data[4]
             response = register(peer_name, addr, m_port, p_port)
             s.sendto(response.encode('utf-8'), (addr, m_port))
-        if command == "setup_dht":
+        if command == "setup-dht":
             peer_name = data[1]
             num = data[2]
             year = data[3]
@@ -95,8 +96,9 @@ def main():
             # address is a tuple returned from recvfrom()
             s.sendto(response.encode('utf-8'), address)
             if response == "SUCCESS":
-                s.sendto(dht_list.encode('utf-8'), address)
-        if command == "dht_complete":
+                serialized_dht_list = pickle.dumps(dht_list)
+                s.sendto(serialized_dht_list, address)
+        if command == "dht-complete":
             response = dht_complete(data[1])
             s.sendto(response.encode('utf-8'), address)
             
