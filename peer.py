@@ -30,7 +30,8 @@ def setup_dht(peer_name, num, year):
 # Define main loop and response to each function
 def main():
     peer_addr = input("Enter host address: ")
-    p_port = int(input("Enter peer port: "))
+    p_port = int(input("Enter peer-peer port: "))
+    m_port = int(input("Enter peer-manager port: "))
     # Create socket for peer-peer communication
     p_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     p_socket.bind((peer_addr, p_port))
@@ -49,7 +50,6 @@ def main():
         if command[0] == "register":
             print("Registering peer...")
             message = register(command[1], command[2], command[3], command[4])
-            m_socket.bind((command[2], int(command[3])))
             m_socket.sendto(message.encode('utf-8'), (manager_addr, manager_port))
             response, address = m_socket.recvfrom(1024)
             response = response.decode('utf-8')
