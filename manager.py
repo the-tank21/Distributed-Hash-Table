@@ -9,6 +9,8 @@ import pickle
 peer_list = []
 dht_list = []
 dht_state = "NOT CREATED"
+host = ''
+port_number = 0
 
 @dataclass
 class Peer:
@@ -67,27 +69,29 @@ def dht_complete(peer_name):
 def main():
     # Create and bind socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    host = socket.gethostname()
-    port_number = int(input("Enter port number between 14000 and 14500: "))
-    while (port_number < 14000 or port_number > 14500):
-        port_number = int(input("Enter port number between 14000 and 14500: "))
     s.bind((host, port_number))
 
     # Run server
     while True:
-    # Listen for command
+    # Wait for command
+        print("Waiting for command...")
         data, address = s.recvfrom(1024)
     # Identify type of command
-        data.decode('utf-8').split(' ')
-        command = data[0]
+        data = data.decode('utf-8').split(' ')
+        print(data)
+        command = str(data[0])
+        print("Command: " + command + " received.")
     # Execute command
         if command == "register":
             peer_name = data[1]
             addr = data[2]
-            m_port = data[3]
-            p_port = data[4]
+            m_port = int(data[3])
+            p_port = int(data[4])
             response = register(peer_name, addr, m_port, p_port)
-            s.sendto(response.encode('utf-8'), (addr, m_port))
+            print(response)
+            s.sendto(response.encode('utf-8'), address)
+            for peer in peer_list:
+                print(peer.peer_name)
         if command == "setup-dht":
             peer_name = data[1]
             num = data[2]
@@ -102,5 +106,7 @@ def main():
             response = dht_complete(data[1])
             s.sendto(response.encode('utf-8'), address)
             
-            
 
+host = input("Enter the host address: ")
+port_number = int(input("Enter the port number: "))       
+main()

@@ -3,8 +3,8 @@ import socket
 import pickle
 
 # Define variables
-peer_name = ""
-peer_addr = socket.gethostbyname(socket.gethostname())
+peer_name = ''
+peer_addr = ''
 m_port = 0
 p_port = 0
 peer_state = "Free"
@@ -29,37 +29,40 @@ def setup_dht(peer_name, num, year):
 
 # Define main loop and response to each function
 def main():
-    # Store address of manager
-    manager_addr = input("Enter manager address: ")
-    manager_port = int(input("Enter manager port: "))
-    while (manager_port < 14000 or manager_port > 14500):
-        manager_port = int(input("Invalid port number. Please enter a valid port number: "))
-    # Create socket for peer-manager communication
-    m_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
+    peer_addr = input("Enter host address: ")
+    p_port = int(input("Enter peer port: "))
     # Create socket for peer-peer communication
     p_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     p_socket.bind((peer_addr, p_port))
+    # Store address of manager
+    manager_addr = input("Enter manager address: ")
+    manager_port = int(input("Enter manager port: "))
+    # Create socket for peer-manager communication
+    m_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    m_socket.bind((peer_addr, m_port))
 
-    # Read command from stdin
-    command = input("Enter command: ")
-    command = command.split(" ")
-    if command[0] == "register":
-        message = register(command[1], command[2], command[3], command[4])
-        m_socket.bind((command[2], int(command[3])))
-        m_socket.sendto(message.encode(), (manager_addr, manager_port))
-        response = m_socket.recvfrom(1024)
-        response = response.decode()
-        print(response)
-    if command[0] == "setup-dht":
-        message = setup_dht(command[1], command[2], command[3])
-        response = m_socket.recvfrom(1024)
-        print(response)
-        if response == "SUCCESS":
-            peer_state = "Leader"
+
+    while True:
+        # Read command from stdin
+        command = input("Enter command: ")
+        command = command.split(" ")
+        if command[0] == "register":
+            print("Registering peer...")
+            message = register(command[1], command[2], command[3], command[4])
+            m_socket.bind((command[2], int(command[3])))
+            m_socket.sendto(message.encode('utf-8'), (manager_addr, manager_port))
+            response, address = m_socket.recvfrom(1024)
+            response = response.decode('utf-8')
+            print(response)
+        if command[0] == "setup-dht":
+            message = setup_dht(command[1], command[2], command[3])
             response = m_socket.recvfrom(1024)
-            dht_list = pickle.loads(response)
+            print(response)
+            if response == "SUCCESS":
+                peer_state = "Leader"
+                response = m_socket.recvfrom(1024)
+                dht_list = pickle.loads(response)
 
-
+main()
 
     
