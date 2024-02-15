@@ -24,7 +24,7 @@ class Peer:
 def register(peer_name, addr, m_port, p_port):
     # Check for any duplicate data in the peer list
     for peer in peer_list:
-        if peer.peer_name == peer_name or peer.addr == addr or peer.m_port == m_port or peer.p_port == p_port:
+        if peer.peer_name == peer_name or peer.m_port == m_port or peer.p_port == p_port:
             return "FAILURE"
     # Add peer to peer list
     peer = Peer(peer_name, addr, m_port, p_port)

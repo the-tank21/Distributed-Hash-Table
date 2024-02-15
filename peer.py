@@ -56,12 +56,14 @@ def main():
             print(response)
         if command[0] == "setup-dht":
             message = setup_dht(command[1], command[2], command[3])
+            m_socket.sendto(message.encode('utf-8'), (manager_addr, manager_port))
             response = m_socket.recvfrom(1024)
             print(response)
             if response == "SUCCESS":
                 peer_state = "Leader"
                 response = m_socket.recvfrom(1024)
                 dht_list = pickle.loads(response)
+                    
 
 main()
 
