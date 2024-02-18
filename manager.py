@@ -20,6 +20,10 @@ class Peer:
     p_port: int
     state: str = "Free"
 
+    def print(self):
+        print("Peer Name: " + self.peer_name + ", Address: " + self.addr + ", State: " + self.state)
+
+
 # Define register function
 def register(peer_name, addr, m_port, p_port):
     # Check for any duplicate data in the peer list
@@ -33,21 +37,24 @@ def register(peer_name, addr, m_port, p_port):
 
 # Define setup_dht function
 def setup_dht(peer_name, num, year):
+    global dht_state
+    global dht_list
+    num = int(num)
     contains_name = False
     in_dht = 0
     if num < 3:
-        return "FAILURE"
-    if peer_list.length < num:
-        return "FAILURE"
+        return [], "FAILURE"
+    if len(peer_list) < num:
+        return [], "FAILURE"
     if dht_state == "CREATED":
-        return "FAILURE"
+        return [], "FAILURE"
     for peer in peer_list:
         if peer.peer_name == peer_name:
             contains_name = True
             peer.state = "Leader"
             dht_list.append((peer.peer_name, peer.addr, peer.p_port))
     if (contains_name == False):
-        return "FAILURE"
+        return [], "FAILURE"
     for peer in peer_list:
         if peer.state == "Free":
             peer.state = "InDHT"
@@ -91,7 +98,7 @@ def main():
             print(response)
             s.sendto(response.encode('utf-8'), address)
             for peer in peer_list:
-                print(peer.peer_name)
+                peer.print()
         if command == "setup-dht":
             peer_name = data[1]
             num = data[2]
