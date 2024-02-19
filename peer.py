@@ -115,6 +115,9 @@ def main():
             print("Number of entries:", len(entries))
             ht_size = next_largest_prime(2 * len(entries))
             print("Distributing entries...")
+            num_entries = []
+            for i in range(len(dht_list)):
+                num_entries.append(0)
             for i in range(len(entries)):
                 entry_pos = int(entries[i][0]) % ht_size
                 entry_id = entry_pos % len(dht_list)
@@ -124,9 +127,13 @@ def main():
                 else:
                     data = pickle.dumps((entries[i], entry_pos, entry_id))
                     p_socket.sendto(data, (neighbor_addr, neighbor_port))
+                num_entries[entry_id] += 1
             print("Entries distributed. Sending done message...")
             for i in range(len(dht_list)):
                 p_socket.sendto(b'DONE', (dht_list[i][1], dht_list[i][2]))
+            # Print number of entries at each peer
+            for i in range(len(dht_list)):
+                print("Peer " + dht_list[i][0] + ", Entries: " + str(num_entries[i]))
 
             
         if command[0] == "join-dht":
@@ -157,6 +164,14 @@ def main():
                     hash_table[entry_pos] = data
                 else:
                     p_socket.sendto(pickle.dumps((data, entry_pos, entry_id)), (neighbor_addr, neighbor_port))
+
+        if command[0] == "dht-complete":
+            # Send done message to manager
+            message = "dht-complete " + peer_name
+            m_socket.sendto(message.encode('utf-8'), (manager_addr, manager_port))
+            data = m_socket.recv(1024)
+            print(data.decode('utf-8'))
+
 
 
 main()
