@@ -29,11 +29,11 @@ def register(peer_name, addr, m_port, p_port):
     # Check for any duplicate data in the peer list
     for peer in peer_list:
         if peer.peer_name == peer_name or peer.m_port == m_port or peer.p_port == p_port:
-            return "FAILURE"
+            return "FAILURE register"
     # Add peer to peer list
     peer = Peer(peer_name, addr, m_port, p_port)
     peer_list.append(peer)
-    return "SUCCESS"
+    return "SUCCESS register"
 
 # Define setup_dht function
 def setup_dht(peer_name, num, year):
@@ -43,18 +43,18 @@ def setup_dht(peer_name, num, year):
     contains_name = False
     in_dht = 0
     if num < 3:
-        return [], "FAILURE"
+        return [], "FAILURE setup-dht"
     if len(peer_list) < num:
-        return [], "FAILURE"
+        return [], "FAILURE setup-dht"
     if dht_state == "CREATED":
-        return [], "FAILURE"
+        return [], "FAILURE setup-dht"
     for peer in peer_list:
         if peer.peer_name == peer_name:
             contains_name = True
             peer.state = "Leader"
             dht_list.append((peer.peer_name, peer.addr, peer.p_port))
     if (contains_name == False):
-        return [], "FAILURE"
+        return [], "FAILURE setup-dht"
     for peer in peer_list:
         if peer.state == "Free":
             peer.state = "InDHT"
@@ -63,7 +63,7 @@ def setup_dht(peer_name, num, year):
         if in_dht == num - 1:
             break
     dht_state = "IN PROGRESS"
-    return dht_list, "SUCCESS"
+    return dht_list, "SUCCESS setup-dht"
 
 # Define dht_complete function
 def dht_complete(peer_name):
