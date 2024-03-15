@@ -71,16 +71,16 @@ def main():
             m_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             m_socket.bind((peer_addr, m_port))
             message = register(command[1], command[2], command[3], command[4])
-            m_socket.sendto(message.encode('utf-8'), (manager_addr, manager_port))
+            m_socket.sendto(message.encode(), (manager_addr, manager_port))
             response, address = m_socket.recvfrom(1024)
-            response = response.decode('utf-8')
+            response = response.decode()
             print(response)
         if command[0] == "setup-dht":
             message = setup_dht(command[1], command[2], command[3])
-            m_socket.sendto(message.encode('utf-8'), (manager_addr, manager_port))
+            m_socket.sendto(message.encode(), (manager_addr, manager_port))
             print("Waiting for response...")
             response, address = m_socket.recvfrom(1024)
-            response = response.decode('utf-8')
+            response = response.decode()
             print(response)
             if response == "FAILURE":
                 break
@@ -168,9 +168,9 @@ def main():
         if command[0] == "dht-complete":
             # Send done message to manager
             message = "dht-complete " + peer_name
-            m_socket.sendto(message.encode('utf-8'), (manager_addr, manager_port))
+            m_socket.sendto(message.encode(), (manager_addr, manager_port))
             data = m_socket.recv(1024)
-            print(data.decode('utf-8'))
+            print(data.decode())
 
 
 

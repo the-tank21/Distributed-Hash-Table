@@ -68,9 +68,9 @@ def setup_dht(peer_name, num, year):
 # Define dht_complete function
 def dht_complete(peer_name):
     if peer_name != dht_list[0][0]:
-        return "FAILURE"
-    dht_state = "CREATED"
-    return "SUCCESS"
+        return "FAILURE dht-complete"
+    dht_state = "CREATED dht-complete"
+    return "SUCCESS dht-complete"
 
 # main function
 def main():
@@ -84,7 +84,7 @@ def main():
         print("Waiting for command...")
         data, address = s.recvfrom(1024)
     # Identify type of command
-        data = data.decode('utf-8').split(' ')
+        data = data.decode().split(' ')
         print(data)
         command = str(data[0])
         print("Command: " + command + " received.")
@@ -96,7 +96,7 @@ def main():
             p_port = int(data[4])
             response = register(peer_name, addr, m_port, p_port)
             print(response)
-            s.sendto(response.encode('utf-8'), address)
+            s.sendto(response.encode(), address)
             for peer in peer_list:
                 peer.print()
         if command == "setup-dht":
@@ -105,13 +105,13 @@ def main():
             year = data[3]
             dht_list, response = setup_dht(peer_name, num, year)
             # address is a tuple returned from recvfrom()
-            s.sendto(response.encode('utf-8'), address)
-            if response == "SUCCESS":
+            s.sendto(response.encode(), address)
+            if response == "SUCCESS setup-dht":
                 serialized_dht_list = pickle.dumps(dht_list)
                 s.sendto(serialized_dht_list, address)
         if command == "dht-complete":
             response = dht_complete(data[1])
-            s.sendto(response.encode('utf-8'), address)
+            s.sendto(response.encode(), address)
             
 
 host = input("Enter the host address: ")
