@@ -95,6 +95,17 @@ def manager_thread():
                 # Print number of entries at each peer
                 for i in range(len(dht_list)):
                     print("Peer " + dht_list[i][0] + ", Entries: " + str(num_entries[i]))
+                # Sending 'dht-complete' message to manager
+                m_socket.sendto(("dht-complete " + peer_name).encode(), (manager_addr, manager_port))
+
+            elif message[1] == 'teardown-dht':
+                print("Tearing down DHT...")
+                hash_table = {}
+                dht_list = []
+                p_socket.sendto(b'teardown-dht', (neighbor_addr, neighbor_port))
+                neighbor_addr = ""
+                neighbor_port = 0
+                
 
 def peer_thread():
     global p_socket, dht_list, id, neighbor_addr, neighbor_port, hash_table
@@ -102,9 +113,9 @@ def peer_thread():
         print("Listening on peer socket...")
         message = p_socket.recv(1024).decode()
         message = message.split()
-        command = message[0]
-        print(command)
-        if command == "Welcome":
+        print(message[0])
+        # Dht building
+        if message[0] == "Welcome":
             print("Connected to DHT")
             message = p_socket.recv(1024)
             dht_list, id = pickle.loads(message)
@@ -126,6 +137,16 @@ def peer_thread():
                     hash_table[entry_pos] = data
                 else:
                     p_socket.sendto(pickle.dumps((data, entry_pos, entry_id)), (neighbor_addr, neighbor_port))
+            
+        # Dht teardown
+        elif message[0] == "teardown-dht":
+            print("Tearing down DHT...")
+            if (id != len(dht_list) - 1):
+                p_socket.sendto(b'teardown-dht', (neighbor_addr, neighbor_port))
+            hash_table = {}
+            dht_list = []
+            neighbor_addr = ""
+            neighbor_port = 0
 
 
 
@@ -154,6 +175,8 @@ def stdio_thread():
                 num = message[2]
                 year = message[3]
                 m_socket.sendto(setup_dht(peer_name, num, year).encode(), (manager_addr, manager_port))
+        elif command == "teardown-dht":
+            m_socket.sendto(("teardown-dht " + peer_name).encode(), (manager_addr, manager_port))
 
 
 def main():

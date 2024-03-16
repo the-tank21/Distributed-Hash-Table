@@ -67,13 +67,15 @@ def setup_dht(peer_name, num, year):
 
 # Define dht_complete function
 def dht_complete(peer_name):
+    global dht_state
     if peer_name != dht_list[0][0]:
         return "FAILURE dht-complete"
-    dht_state = "CREATED dht-complete"
+    dht_state = "CREATED"
     return "SUCCESS dht-complete"
 
 # main function
 def main():
+    global dht_list, dht_state
     # Create and bind socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.bind((host, port_number))
@@ -112,6 +114,14 @@ def main():
         if command == "dht-complete":
             response = dht_complete(data[1])
             s.sendto(response.encode(), address)
+        if command == "teardown-dht":
+            if data[1] != dht_list[0][0]:
+                s.sendto("FAILURE teardown-dht".encode(), address)
+            else: 
+                dht_state = "NOT CREATED"
+                for peer in peer_list:
+                    peer.state = "Free"
+                s.sendto("SUCCESS teardown-dht".encode(), address)
             
 
 host = input("Enter the host address: ")
