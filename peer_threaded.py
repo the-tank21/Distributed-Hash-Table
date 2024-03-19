@@ -55,7 +55,7 @@ def manager_thread():
                 neighbor_addr = dht_list[1][1]
                 neighbor_port = dht_list[1][2]
                 for i in range(1, len(dht_list)):
-                    p_socket.sendto(b'Welcome to DHT', (dht_list[i][1], int(dht_list[i][2])))
+                    p_socket.sendto('Welcome to DHT'.encode(), (dht_list[i][1], int(dht_list[i][2])))
                     data = pickle.dumps((dht_list, i))
                     p_socket.sendto(data, (dht_list[i][1], int(dht_list[i][2])))
                 # Open csv file and distrubute data
@@ -100,9 +100,9 @@ def manager_thread():
 
             elif message[1] == 'teardown-dht':
                 print("Tearing down DHT...")
-                hash_table = {}
-                dht_list = []
-                p_socket.sendto(b'teardown-dht', (neighbor_addr, neighbor_port))
+                hash_table.clear()
+                dht_list.clear()
+                p_socket.sendto('teardown-dht'.encode(), (neighbor_addr, neighbor_port))
                 neighbor_addr = ""
                 neighbor_port = 0
                 
@@ -143,8 +143,8 @@ def peer_thread():
             print("Tearing down DHT...")
             if (id != len(dht_list) - 1):
                 p_socket.sendto(b'teardown-dht', (neighbor_addr, neighbor_port))
-            hash_table = {}
-            dht_list = []
+            hash_table.clear()
+            dht_list.clear()
             neighbor_addr = ""
             neighbor_port = 0
 

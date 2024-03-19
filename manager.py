@@ -39,6 +39,7 @@ def register(peer_name, addr, m_port, p_port):
 def setup_dht(peer_name, num, year):
     global dht_state
     global dht_list
+    dht_list.clear()
     num = int(num)
     contains_name = False
     in_dht = 0
@@ -119,9 +120,13 @@ def main():
                 s.sendto("FAILURE teardown-dht".encode(), address)
             else: 
                 dht_state = "NOT CREATED"
+                dht_list.clear()
                 for peer in peer_list:
                     peer.state = "Free"
                 s.sendto("SUCCESS teardown-dht".encode(), address)
+            print("Peer list:")
+            for peer in peer_list:
+                peer.print()
             
 
 host = input("Enter the host address: ")
