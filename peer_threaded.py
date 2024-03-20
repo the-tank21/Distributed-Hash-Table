@@ -1,6 +1,6 @@
 # New version of peer program with threading for multiple connections
 
-import socket, pickle, csv, os, fnmatch, math, threading
+import socket, pickle, csv, os, fnmatch, math, threading, time
 
 global peer_name, peer_addr, m_port, p_port
 global manager_addr, manager_port
@@ -39,7 +39,7 @@ def manager_thread():
     global m_socket, p_socket, dht_list, id, year, hash_table, neighbor_addr, neighbor_port
     while True:
         print("Listening on manager socket...")
-        message = m_socket.recv(1024).decode()
+        message = m_socket.recv(1024).decode('ascii')
         message = message.split()
         print(message)
         # Check if message is receipt of different command
@@ -55,7 +55,7 @@ def manager_thread():
                 neighbor_addr = dht_list[1][1]
                 neighbor_port = dht_list[1][2]
                 for i in range(1, len(dht_list)):
-                    p_socket.sendto('Welcome to DHT'.encode(), (dht_list[i][1], int(dht_list[i][2])))
+                    p_socket.sendto('Welcome to DHT'.encode('ascii'), (dht_list[i][1], int(dht_list[i][2])))
                     data = pickle.dumps((dht_list, i))
                     p_socket.sendto(data, (dht_list[i][1], int(dht_list[i][2])))
                 # Open csv file and distrubute data
@@ -90,28 +90,40 @@ def manager_thread():
                         p_socket.sendto(data, (neighbor_addr, neighbor_port))
                     num_entries[entry_id] += 1
                 print("Entries distributed. Sending done message...")
+                time.sleep(0.5) # Process was sending done message before all entries propagated
                 for i in range(len(dht_list)):
                     p_socket.sendto(b'DONE', (dht_list[i][1], dht_list[i][2]))
                 # Print number of entries at each peer
                 for i in range(len(dht_list)):
                     print("Peer " + dht_list[i][0] + ", Entries: " + str(num_entries[i]))
                 # Sending 'dht-complete' message to manager
-                m_socket.sendto(("dht-complete " + peer_name).encode(), (manager_addr, manager_port))
-
+                m_socket.sendto(("dht-complete " + peer_name).encode('ascii'), (manager_addr, manager_port))
             elif message[1] == 'teardown-dht':
                 print("Tearing down DHT...")
                 hash_table.clear()
                 dht_list.clear()
-                p_socket.sendto('teardown-dht'.encode(), (neighbor_addr, neighbor_port))
+                p_socket.sendto('teardown-dht'.encode('ascii'), (neighbor_addr, neighbor_port))
                 neighbor_addr = ""
                 neighbor_port = 0
+                m_socket.sendto(("teardown-complete " + peer_name).encode('ascii'), (manager_addr, manager_port))
+            elif message[1] == 'deregister':
+                print("Deregistering...")
+                m_socket.close()
+                p_socket.close()
+                exit(0)
+            elif message[1] == 'leave-dht':
+                print("Leaving DHT...")
+            elif message[1] == 'join-dht':
+                print("Joining DHT...")
+                
+            
                 
 
 def peer_thread():
     global p_socket, dht_list, id, neighbor_addr, neighbor_port, hash_table
     while True:
         print("Listening on peer socket...")
-        message = p_socket.recv(1024).decode()
+        message = p_socket.recv(1024).decode('ascii')
         message = message.split()
         print(message[0])
         # Dht building
@@ -167,16 +179,24 @@ def stdio_thread():
                 p_port = int(message[4])
                 m_socket.bind((peer_addr, m_port))
                 p_socket.bind((peer_addr, p_port))
-                m_socket.sendto(register(peer_name, peer_addr, str(m_port), str(p_port)).encode(), (manager_addr, manager_port))
+                m_socket.sendto(register(peer_name, peer_addr, str(m_port), str(p_port)).encode('ascii'), (manager_addr, manager_port))
         elif command == "setup-dht": # Set up DHT
             if len(message) != 4:
                 print("Invalid command")
             else:
                 num = message[2]
                 year = message[3]
-                m_socket.sendto(setup_dht(peer_name, num, year).encode(), (manager_addr, manager_port))
+                m_socket.sendto(setup_dht(peer_name, num, year).encode('ascii'), (manager_addr, manager_port))
         elif command == "teardown-dht":
-            m_socket.sendto(("teardown-dht " + peer_name).encode(), (manager_addr, manager_port))
+            m_socket.sendto(("teardown-dht " + peer_name).encode('ascii'), (manager_addr, manager_port))
+        elif command == "deregister":
+            m_socket.sendto(("deregister " + peer_name).encode('ascii'), (manager_addr, manager_port))
+        elif command == "leave-dht":
+            m_socket.sendto(("leave-dht " + peer_name).encode('ascii'), (manager_addr, manager_port))
+        elif command == "join-dht":
+            m_socket.sendto(("join-dht " + peer_name).encode('ascii'), (manager_addr, manager_port))
+        elif command == "exit":
+            exit(0)
 
 
 def main():
@@ -198,8 +218,8 @@ def main():
     t3.start()
 
     # Join threads
-    t1.join()
     t2.join()
+    t1.join()
     t3.join()
 
 main()
