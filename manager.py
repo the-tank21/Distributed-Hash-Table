@@ -116,6 +116,7 @@ def main():
             response = dht_complete(data[1])
             s.sendto(response.encode('ascii'), address)
         if command == "teardown-dht":
+            print(dht_list)
             if data[1] != dht_list[0][0]:
                 s.sendto("FAILURE teardown-dht".encode('ascii'), address)
             else: 
@@ -127,6 +128,7 @@ def main():
             for peer in peer_list:
                 peer.print()
         if command == "teardown-complete":
+            print(dht_list)
             if data[1] != dht_list[0][0]:
                 s.sendto("FAILURE teardown-complete".encode('ascii'), address)
             else:
@@ -150,29 +152,29 @@ def main():
         if command == "leave-dht":
             # Somehow made this O(n^2) but it's fine
             found = False
-            for peer in dht_list:
-                if peer[0] == data[1]:
-                    dht_list.remove(peer)
-                    for peer2 in peer_list:
-                        if peer2.peer_name == data[1]:
-                            peer2.state = "Free"
-                            break
+            for i in range(len(dht_list)):
+                if dht_list[i][0] == data[1]:
+                    dht_list.pop(i)
+                    for peer in peer_list:
+                        if peer.peer_name == data[1]:
+                            peer.state = "Free"
                     s.sendto("SUCCESS leave-dht".encode('ascii'), address)
                     found = True
-                    for peer2 in peer_list:
-                        if peer2.state == "Leader":
-                            leader = peer2
-                            s.sendto("SUCCESS teardown-dht".encode('ascii'), (peer2.addr, peer2.m_port))
-                            break
+                    for peer in peer_list:
+                        if peer.state == "Leader":
+                            leader = peer
+                            s.sendto("SUCCESS teardown-dht".encode('ascii'), (peer.addr, peer.m_port))
+                            s.recv(1024)
+                if found:
                     break
             print("Peer list:")
             for peer in peer_list:
                 peer.print()
-            if not found:
+            if found:
+                s.sendto("SUCCESS setup-dht".encode('ascii'), (leader.addr, leader.m_port))
+                s.sendto(pickle.dumps(dht_list), (leader.addr, leader.m_port))
+            else:
                 s.sendto("FAILURE leave-dht".encode('ascii'), address)
-                break
-            s.sendto("SUCCESS setup-dht".encode('ascii'), (leader.addr, leader.m_port))
-            s.sendto(pickle.dumps(dht_list), (leader.addr, leader.m_port))
         if command == "join-dht":
             if dht_state == "IN PROGRESS" or dht_state == "NOT CREATED":
                 s.sendto("FAILURE join-dht".encode('ascii'), address)
@@ -185,13 +187,32 @@ def main():
                     dht_list.append((peer.peer_name, peer.addr, peer.p_port))
                     peer.state = "InDHT"
                     s.sendto("SUCCESS join-dht".encode('ascii'), address)
+                    for peer2 in peer_list:
+                        if peer2.state == "Leader":
+                            leader = peer2
+                            s.sendto("SUCCESS teardown-dht".encode('ascii'), (peer2.addr, peer2.m_port))
+                            s.recv(1024)
+                            break
                     break
             print("Peer list:")
             for peer in peer_list:
                 peer.print()
             s.sendto("SUCCESS setup-dht".encode('ascii'), (leader.addr, leader.m_port))
             s.sendto(pickle.dumps(dht_list), (leader.addr, leader.m_port))
-            
+        if command == "query-dht":
+            if dht_state != "CREATED":
+                s.sendto("FAILURE query-dht".encode('ascii'), address)
+                break
+            found = False
+            for peer in peer_list:
+                if data[1] == peer.peer_name and peer.state == "Free":
+                    s.sendto("SUCCESS query-dht".encode('ascii'), address)
+                    s.sendto(pickle.dumps(dht_list[0]), address)
+                    found = True
+                    break
+            if not found:
+                s.sendto("FAILURE query-dht".encode('ascii'), address)
+
 
 host = input("Enter the host address: ")
 port_number = int(input("Enter the port number: "))       

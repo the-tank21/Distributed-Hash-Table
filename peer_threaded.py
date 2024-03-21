@@ -6,7 +6,7 @@ global peer_name, peer_addr, m_port, p_port
 global manager_addr, manager_port
 global m_socket, p_socket
 global neighbor_addr, neighbor_port
-global id, dht_list, hash_table
+global id, dht_list, hash_table, ht_size
 hash_table = {}
 
 # Define peer functions
@@ -36,7 +36,7 @@ def next_largest_prime(n):
 
 # Define threads for different inputs
 def manager_thread():
-    global m_socket, p_socket, dht_list, id, year, hash_table, neighbor_addr, neighbor_port
+    global m_socket, p_socket, dht_list, id, year, hash_table, neighbor_addr, neighbor_port, query_id, ht_size
     while True:
         print("Listening on manager socket...")
         message = m_socket.recv(1024).decode('ascii')
@@ -115,12 +115,16 @@ def manager_thread():
                 print("Leaving DHT...")
             elif message[1] == 'join-dht':
                 print("Joining DHT...")
-                
-            
+            elif message[1] == 'query-dht':
+                print("Querying DHT for event ID " + query_id)
+                query_peer = pickle.loads(m_socket.recv(1024))
+                p_socket.sendto(("query-dht " + query_id).encode('ascii'), (query_peer[1], query_peer[2]))
+                p_socket.sendto(pickle.dumps((peer_name, peer_addr, p_port)), (query_peer[1], query_peer[2]))
+
                 
 
 def peer_thread():
-    global p_socket, dht_list, id, neighbor_addr, neighbor_port, hash_table
+    global p_socket, dht_list, id, neighbor_addr, neighbor_port, hash_table, ht_size
     while True:
         print("Listening on peer socket...")
         message = p_socket.recv(1024).decode('ascii')
@@ -160,12 +164,37 @@ def peer_thread():
             neighbor_addr = ""
             neighbor_port = 0
 
+        elif message[0] == "find-event":
+            print("Searching for event: " + message[1])
+            retaddr, query_pos = pickle.loads(p_socket.recv(1024))
+            if query_pos in hash_table:
+                print("Event found")
+                p_socket.sendto("event-found".encode('ascii'), (retaddr[1], retaddr[2]))
+                p_socket.sendto(pickle.dumps(hash_table[query_pos]), (retaddr[1], retaddr[2]))
+            else: 
+                if (id == 0):
+                    print("Event not found")
+                    p_socket.sendto("event-not-found".encode('ascii'), (retaddr[1], retaddr[2]))
+                else:
+                    print("Sending request forward...")
+                    p_socket.sendto(("find-event " + message[1]).encode('ascii'), (neighbor_addr, neighbor_port))
+                    p_socket.sendto(pickle.dumps((retaddr, query_pos)), (neighbor_addr, neighbor_port))
+        elif message[0] == "query-dht":
+            query_id = int(message[1])
+            query_pos = query_id % ht_size
+            retaddr = pickle.loads(p_socket.recv(1024))
+            p_socket.sendto(("find-event " + message[1]).encode('ascii'), (neighbor_addr, neighbor_port))
+            p_socket.sendto(pickle.dumps((retaddr, query_pos)), (neighbor_addr, neighbor_port))
+        elif message[0] == "event-found":
+            event = pickle.loads(p_socket.recv(1024))
+            print("Event found: ")
+            print(event)
 
 
 def stdio_thread():
     global peer_name, peer_addr, m_port, p_port
     global m_socket, p_socket
-    global year, num
+    global year, num, query_id
     while True:
         message = input("Enter command: ").split()
         command = message[0]
@@ -195,6 +224,12 @@ def stdio_thread():
             m_socket.sendto(("leave-dht " + peer_name).encode('ascii'), (manager_addr, manager_port))
         elif command == "join-dht":
             m_socket.sendto(("join-dht " + peer_name).encode('ascii'), (manager_addr, manager_port))
+        elif command == "query-dht":
+            if len(message) != 2:
+                print("Invalid command")
+            else:
+                m_socket.sendto(("query-dht " + peer_name + " " + message[1]).encode('ascii'), (manager_addr, manager_port))
+                query_id = message[1]
         elif command == "exit":
             exit(0)
 
